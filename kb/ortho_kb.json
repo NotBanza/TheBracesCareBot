@@ -1,0 +1,103 @@
+{
+  "braces_care": {
+    "keywords": ["braces", "cleaning", "care", "maintenance", "oral hygiene"],
+    "content": "Proper care of braces is essential for successful orthodontic treatment and oral health.",
+    "tips": [
+      "Brush your teeth after every meal using a soft-bristled toothbrush",
+      "Use fluoride toothpaste to prevent cavities",
+      "Floss daily using orthodontic floss or a water flosser",
+      "Use an antimicrobial mouthwash to reduce bacteria",
+      "Avoid sticky, hard, or chewy foods that can damage brackets",
+      "Regular dental cleanings every 3-4 months during treatment"
+    ]
+  },
+  "eating_with_braces": {
+    "keywords": ["eating", "food", "diet", "what to eat", "avoid"],
+    "content": "Diet modifications are important while wearing braces to prevent damage and maintain oral health.",
+    "tips": [
+      "Cut food into small pieces rather than biting into whole fruits or sandwiches",
+      "Avoid hard foods like nuts, hard candies, ice cubes",
+      "Avoid sticky foods like caramel, taffy, gum",
+      "Limit sugary snacks and drinks to prevent tooth decay",
+      "Choose soft foods like pasta, yogurt, soft fruits",
+      "Steam vegetables to make them softer"
+    ]
+  },
+  "pain_management": {
+    "keywords": ["pain", "discomfort", "sore", "hurt", "tender"],
+    "content": "Some discomfort is normal when getting braces or after adjustments.",
+    "tips": [
+      "Take over-the-counter pain relievers as directed (ibuprofen or acetaminophen)",
+      "Use orthodontic wax on brackets that irritate your cheeks or lips",
+      "Eat soft foods for the first few days after adjustments",
+      "Rinse with warm salt water to soothe irritated tissues",
+      "Apply a cold compress to the outside of your mouth for swelling",
+      "Contact your orthodontist if pain persists beyond a few days"
+    ]
+  },
+  "retainers": {
+    "keywords": ["retainer", "after braces", "maintenance", "wearing"],
+    "content": "Retainers are crucial for maintaining your new smile after braces are removed.",
+    "tips": [
+      "Wear your retainer exactly as prescribed by your orthodontist",
+      "Clean your retainer daily with a soft brush and mild soap",
+      "Soak removable retainers in cleaning solution weekly",
+      "Store retainers in their case when not wearing them",
+      "Never wrap retainers in napkins or tissues",
+      "Bring your retainer to all orthodontic appointments",
+      "Replace retainers as recommended by your orthodontist"
+    ]
+  },
+  "emergencies": {
+    "keywords": ["emergency", "broken", "loose", "wire", "bracket"],
+    "content": "Orthodontic emergencies can occur and may need immediate attention.",
+    "tips": [
+      "Use orthodontic wax to cover sharp or protruding wires",
+      "If a bracket comes loose, save it and call your orthodontist",
+      "For poking wires, try to gently push them back with a cotton swab",
+      "Rinse mouth with warm salt water if tissues are irritated",
+      "Take pain medication if needed for discomfort",
+      "Contact your orthodontist during business hours for non-urgent issues",
+      "Seek immediate care for severe pain, trauma, or infection signs"
+    ]
+  },
+  "appointments": {
+    "keywords": ["appointment", "adjustment", "visit", "check-up"],
+    "content": "Regular orthodontic appointments are essential for successful treatment.",
+    "tips": [
+      "Keep all scheduled appointments - delays can extend treatment time",
+      "Brush and floss before appointments",
+      "Bring any concerns or questions to discuss",
+      "Follow post-appointment care instructions carefully",
+      "Schedule your next appointment before leaving the office",
+      "Call ahead if you need to reschedule",
+      "Expect some discomfort for 2-3 days after adjustments"
+    ]
+  },
+  "oral_hygiene": {
+    "keywords": ["brushing", "flossing", "hygiene", "cleaning", "plaque"],
+    "content": "Maintaining excellent oral hygiene is crucial during orthodontic treatment.",
+    "tips": [
+      "Brush at least twice daily, preferably after every meal",
+      "Use a soft-bristled toothbrush or electric toothbrush",
+      "Angle the brush to clean around brackets and wires",
+      "Floss daily using special orthodontic floss or floss threaders",
+      "Consider using a water flosser for additional cleaning",
+      "Use fluoride mouthwash to strengthen teeth",
+      "Replace toothbrush every 3 months or sooner if bristles fray"
+    ]
+  },
+  "sports_activities": {
+    "keywords": ["sports", "athletics", "mouthguard", "protection"],
+    "content": "You can continue playing sports while wearing braces with proper protection.",
+    "tips": [
+      "Always wear a mouthguard during contact sports",
+      "Use a special orthodontic mouthguard designed for braces",
+      "Remove retainers before playing sports",
+      "Keep a emergency orthodontic kit during travel or tournaments",
+      "Inform coaches and trainers about your braces",
+      "Stay hydrated and rinse mouth after activities",
+      "Contact orthodontist immediately if braces are damaged during sports"
+    ]
+  }
+}

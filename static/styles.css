@@ -1,0 +1,173 @@
+/* Custom styles for BracesCareBot */
+html, body {
+    height: 100%;
+}
+
+.chat-container {
+    height: 400px;
+    overflow-y: auto;
+}
+
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--bs-dark);
+    border-radius: 0.375rem;
+    border: 1px solid var(--bs-border-color);
+    max-height: 400px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    max-width: 85%;
+}
+
+.message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message.bot {
+    align-self: flex-start;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+}
+
+.message.user .message-avatar {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.message.bot .message-avatar {
+    background-color: var(--bs-info);
+    color: white;
+}
+
+.message-content {
+    background-color: var(--bs-secondary);
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.message.user .message-content {
+    background-color: var(--bs-primary);
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.message.bot .message-content {
+    background-color: var(--bs-light);
+    color: var(--bs-dark);
+    border-bottom-left-radius: 0.25rem;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+.red-flag-warning {
+    border-left: 4px solid var(--bs-danger);
+    padding-left: 1rem;
+    margin-top: 0.5rem;
+}
+
+.knowledge-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+}
+
+/* Scroll to bottom animation */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: var(--bs-dark);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: var(--bs-secondary);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: var(--bs-light);
+}
+
+/* Input focus styling */
+#messageInput:focus {
+    border-color: var(--bs-info);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-info-rgb), 0.25);
+}
+
+/* Button loading state */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Fade in animation for new messages */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .message {
+        max-width: 95%;
+    }
+    
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .chat-messages {
+        padding: 0.75rem;
+    }
+}
+
+/* Welcome card styling */
+#welcome-card {
+    background: linear-gradient(135deg, var(--bs-dark) 0%, var(--bs-secondary) 100%);
+    border: none;
+}
+
+/* Footer styling */
+footer {
+    background-color: var(--bs-dark);
+}
