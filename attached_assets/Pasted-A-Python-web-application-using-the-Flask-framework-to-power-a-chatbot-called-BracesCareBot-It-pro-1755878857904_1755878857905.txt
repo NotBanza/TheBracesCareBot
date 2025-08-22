@@ -1,0 +1,26 @@
+A Python web application using the Flask framework to power a chatbot called 'BracesCareBot'. It provides helpful advice for orthodontic patients using Google's Gemini API and a local knowledge base.
+Technology Stack:
+Backend: Python with Flask.
+AI Model: Google Gemini, using the google-generativeai library.
+Database: Google Firestore, using the firebase-admin library to store chat history.
+Frontend: A single-page application using vanilla HTML, CSS, and JavaScript (no complex frameworks).
+File Structure:
+main.py: The main Flask application file.
+requirements.txt: To list all the Python dependencies.
+A folder named static containing index.html, styles.css, and app.js.
+A folder named kb containing a knowledge base file named ortho_kb.json.
+Backend (main.py) Functionality:
+A main route / that serves the static/index.html file.
+A /chat endpoint that accepts POST requests with a JSON payload containing { "message": "...", "consent": true/false }.
+The /chat endpoint logic should:
+First, check the user's message for "red-flag" keywords (like "fever", "swelling", "uncontrolled bleeding").
+Next, retrieve relevant information from the kb/ortho_kb.json file.
+Then, construct a detailed prompt for the Gemini API, including the knowledge base information and system instructions to be a cautious assistant.
+Call the Gemini API to get a response.
+If the consent flag is true, save the user message and the bot's reply to a Firestore collection.
+Return a JSON response to the frontend with the bot's reply.
+Frontend (index.html and app.js) Functionality:
+A clean user interface with a chat window to display messages, a text input box, and a "Send" button.
+The chat window should distinguish between user messages and bot messages.
+Include a checkbox for the user to give consent for their chat data to be stored.
+The JavaScript in app.js will handle sending the user's message and the consent status to the /chat endpoint using a fetch POST request, and then display the returned response in the chat window.
