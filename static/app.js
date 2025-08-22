@@ -5,9 +5,11 @@ class BracesCareBot {
         this.sendButton = document.getElementById('sendButton');
         this.chatMessages = document.getElementById('chat-messages');
         this.consentCheck = document.getElementById('consentCheck');
-        this.loadingIndicator = document.getElementById('loadingIndicator');
         this.charCount = document.getElementById('charCount');
         this.welcomeCard = document.getElementById('welcome-card');
+        this.typingIndicator = document.getElementById('typing-indicator');
+        this.deleteDataBtn = document.getElementById('deleteDataBtn');
+        this.languageSelect = document.getElementById('languageSelect');
         
         this.initializeEventListeners();
         this.initializeApp();
@@ -19,13 +21,19 @@ class BracesCareBot {
         
         // Load chat history from localStorage
         this.loadChatHistory();
+        
+        // Load saved language preference
+        const savedLang = localStorage.getItem('bracescarebot_language');
+        if (savedLang && this.languageSelect) {
+            this.languageSelect.value = savedLang;
+        }
     }
     
     initializeEventListeners() {
         // Send button click
         this.sendButton.addEventListener('click', () => this.sendMessage());
         
-        // Enter key press
+        // Enter key press (Shift+Enter for new line, Enter to send)
         this.messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -33,28 +41,39 @@ class BracesCareBot {
             }
         });
         
-        // Character counter
+        // Character counter and auto-resize
         this.messageInput.addEventListener('input', () => {
             const length = this.messageInput.value.length;
             this.charCount.textContent = length;
             
-            if (length > 450) {
-                this.charCount.style.color = 'var(--bs-warning)';
-            } else if (length > 480) {
-                this.charCount.style.color = 'var(--bs-danger)';
+            // Update character counter color
+            if (length > 480) {
+                this.charCount.style.color = 'var(--danger-red)';
+            } else if (length > 450) {
+                this.charCount.style.color = 'var(--warning-orange)';
             } else {
-                this.charCount.style.color = '';
+                this.charCount.style.color = 'var(--text-muted)';
             }
+            
+            // Auto-resize textarea
+            this.autoResizeInput();
         });
         
-        // Auto-resize input (optional enhancement)
-        this.messageInput.addEventListener('input', this.autoResizeInput.bind(this));
+        // Delete data button
+        if (this.deleteDataBtn) {
+            this.deleteDataBtn.addEventListener('click', () => this.deleteAllData());
+        }
+        
+        // Language selector
+        if (this.languageSelect) {
+            this.languageSelect.addEventListener('change', () => this.changeLanguage());
+        }
     }
     
     autoResizeInput() {
-        // Simple auto-resize functionality
+        // Auto-resize textarea
         this.messageInput.style.height = 'auto';
-        this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 150) + 'px';
+        this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 120) + 'px';
     }
     
     async sendMessage() {
@@ -75,6 +94,7 @@ class BracesCareBot {
         // Clear input and disable controls
         this.messageInput.value = '';
         this.charCount.textContent = '0';
+        this.autoResizeInput();
         this.setLoading(true);
         
         // Hide welcome card if this is the first message
@@ -85,12 +105,18 @@ class BracesCareBot {
         // Add user message to chat
         this.addMessage(message, 'user');
         
+        // Show typing indicator
+        this.showTypingIndicator();
+        
         try {
             const response = await this.callChatAPI(message, consent);
             
             if (response.error) {
                 throw new Error(response.error);
             }
+            
+            // Hide typing indicator
+            this.hideTypingIndicator();
             
             // Add bot response
             this.addMessage(response.response, 'bot', {
@@ -103,6 +129,7 @@ class BracesCareBot {
             
         } catch (error) {
             console.error('Chat error:', error);
+            this.hideTypingIndicator();
             this.addMessage(
                 'I apologize, but I encountered an error. Please try again or contact your orthodontist if you have urgent concerns.',
                 'bot',
@@ -144,14 +171,14 @@ class BracesCareBot {
         
         const avatar = type === 'user' ? 
             '<i class="fas fa-user"></i>' : 
-            '<i class="fas fa-robot"></i>';
+            '<i class="fas fa-teeth"></i>';
         
         let warningHtml = '';
         if (metadata.redFlags && metadata.redFlags.length > 0) {
             warningHtml = `
-                <div class="red-flag-warning alert alert-danger mt-2 mb-0">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Important:</strong> You mentioned concerning symptoms. Please contact your orthodontist or seek medical attention.
+                <div class="red-flag-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Important:</strong> You mentioned concerning symptoms. Please contact your orthodontist or seek medical attention immediately.
                 </div>
             `;
         }
@@ -160,18 +187,8 @@ class BracesCareBot {
         if (metadata.knowledgeUsed) {
             knowledgeHtml = `
                 <div class="knowledge-indicator">
-                    <i class="fas fa-book text-info"></i>
+                    <i class="fas fa-book"></i>
                     <span>Based on orthodontic knowledge base</span>
-                </div>
-            `;
-        }
-        
-        let errorHtml = '';
-        if (metadata.error) {
-            errorHtml = `
-                <div class="alert alert-warning mt-2 mb-0">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    This is an error message. Please try again.
                 </div>
             `;
         }
@@ -183,7 +200,6 @@ class BracesCareBot {
                 <div class="message-time">${timestamp}</div>
                 ${warningHtml}
                 ${knowledgeHtml}
-                ${errorHtml}
             </div>
         `;
         
@@ -207,39 +223,88 @@ class BracesCareBot {
     }
     
     setLoading(isLoading) {
+        this.sendButton.disabled = isLoading;
+        this.messageInput.disabled = isLoading;
+        
         if (isLoading) {
-            this.sendButton.disabled = true;
-            this.sendButton.classList.add('btn-loading');
-            this.messageInput.disabled = true;
-            this.loadingIndicator.style.display = 'block';
+            this.sendButton.style.opacity = '0.6';
         } else {
-            this.sendButton.disabled = false;
-            this.sendButton.classList.remove('btn-loading');
-            this.messageInput.disabled = false;
-            this.loadingIndicator.style.display = 'none';
+            this.sendButton.style.opacity = '1';
+        }
+    }
+    
+    showTypingIndicator() {
+        if (this.typingIndicator) {
+            this.typingIndicator.style.display = 'flex';
+            this.scrollToBottom();
+        }
+    }
+    
+    hideTypingIndicator() {
+        if (this.typingIndicator) {
+            this.typingIndicator.style.display = 'none';
         }
     }
     
     showError(message) {
-        // Create a temporary alert
+        // Create a temporary toast-like notification
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger-red);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+            max-width: 300px;
+        `;
+        
         alertDiv.innerHTML = `
             <i class="fas fa-exclamation-circle me-2"></i>
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         
-        // Insert before the chat container
-        const chatContainer = document.querySelector('.chat-container');
-        chatContainer.parentNode.insertBefore(alertDiv, chatContainer);
+        document.body.appendChild(alertDiv);
         
         // Auto-remove after 5 seconds
         setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
+            alertDiv.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => alertDiv.remove(), 300);
         }, 5000);
+    }
+    
+    showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-green);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease-out;
+            max-width: 300px;
+        `;
+        
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            ${message}
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            alertDiv.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 3000);
     }
     
     saveChatHistory() {
@@ -289,7 +354,7 @@ class BracesCareBot {
         
         const avatar = type === 'user' ? 
             '<i class="fas fa-user"></i>' : 
-            '<i class="fas fa-robot"></i>';
+            '<i class="fas fa-teeth"></i>';
         
         messageDiv.innerHTML = `
             <div class="message-avatar">${avatar}</div>
@@ -300,6 +365,33 @@ class BracesCareBot {
         `;
         
         this.chatMessages.appendChild(messageDiv);
+    }
+    
+    deleteAllData() {
+        if (confirm('Are you sure you want to delete all chat history? This action cannot be undone.')) {
+            // Clear local storage
+            localStorage.removeItem('bracescarebot_history');
+            
+            // Clear chat messages
+            this.chatMessages.innerHTML = '';
+            
+            // Show welcome card again
+            if (this.welcomeCard) {
+                this.welcomeCard.style.display = 'block';
+            }
+            
+            // Show success message
+            this.showSuccess('Chat history deleted successfully!');
+        }
+    }
+    
+    changeLanguage() {
+        const selectedLang = this.languageSelect.value;
+        // For now, just show a message - full i18n would require more setup
+        this.showSuccess(`Language changed to ${this.languageSelect.options[this.languageSelect.selectedIndex].text}`);
+        
+        // Store language preference
+        localStorage.setItem('bracescarebot_language', selectedLang);
     }
 }
 
@@ -321,6 +413,35 @@ document.addEventListener('keydown', (e) => {
         if (input.value) {
             input.value = '';
             document.getElementById('charCount').textContent = '0';
+            // Reset textarea height
+            input.style.height = 'auto';
         }
     }
 });
+
+// Add slide animations CSS
+const style = document.createElement('style');
+style.textContent = `
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+`;
+document.head.appendChild(style);
