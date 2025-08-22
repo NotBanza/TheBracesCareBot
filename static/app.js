@@ -10,9 +10,22 @@ class BracesCareBot {
         this.typingIndicator = document.getElementById('typing-indicator');
         this.deleteDataBtn = document.getElementById('deleteDataBtn');
         this.languageSelect = document.getElementById('languageSelect');
+        this.micButton = document.getElementById('micButton');
+        this.imageUploadBtn = document.getElementById('imageUploadBtn');
+        this.fileInput = document.getElementById('fileInput');
+        this.imagePreview = document.getElementById('imagePreview');
+        this.previewImg = document.getElementById('previewImg');
+        this.removeImageBtn = document.getElementById('removeImageBtn');
+        this.speechIndicator = document.getElementById('speechIndicator');
+        
+        // Speech recognition setup
+        this.recognition = null;
+        this.isRecording = false;
+        this.currentImage = null;
         
         this.initializeEventListeners();
         this.initializeApp();
+        this.initializeSpeechRecognition();
     }
     
     initializeApp() {
@@ -68,6 +81,26 @@ class BracesCareBot {
         if (this.languageSelect) {
             this.languageSelect.addEventListener('change', () => this.changeLanguage());
         }
+        
+        // Microphone button
+        if (this.micButton) {
+            this.micButton.addEventListener('click', () => this.toggleSpeechRecognition());
+        }
+        
+        // Image upload button
+        if (this.imageUploadBtn) {
+            this.imageUploadBtn.addEventListener('click', () => this.fileInput.click());
+        }
+        
+        // File input change
+        if (this.fileInput) {
+            this.fileInput.addEventListener('change', (e) => this.handleImageUpload(e));
+        }
+        
+        // Remove image button
+        if (this.removeImageBtn) {
+            this.removeImageBtn.addEventListener('click', () => this.removeImage());
+        }
     }
     
     autoResizeInput() {
@@ -117,6 +150,11 @@ class BracesCareBot {
             
             // Hide typing indicator
             this.hideTypingIndicator();
+            
+            // Clear image if it was sent
+            if (this.currentImage) {
+                this.removeImage();
+            }
             
             // Add bot response
             this.addMessage(response.response, 'bot', {
@@ -392,6 +430,119 @@ class BracesCareBot {
         
         // Store language preference
         localStorage.setItem('bracescarebot_language', selectedLang);
+    }
+    
+    initializeSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            
+            this.recognition.continuous = false;
+            this.recognition.interimResults = false;
+            this.recognition.lang = 'en-US';
+            
+            this.recognition.onstart = () => {
+                this.isRecording = true;
+                this.micButton.classList.add('recording');
+                this.speechIndicator.classList.add('active');
+            };
+            
+            this.recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                this.messageInput.value = transcript;
+                this.charCount.textContent = transcript.length;
+                this.autoResizeInput();
+            };
+            
+            this.recognition.onend = () => {
+                this.isRecording = false;
+                this.micButton.classList.remove('recording');
+                this.speechIndicator.classList.remove('active');
+            };
+            
+            this.recognition.onerror = (event) => {
+                this.showError('Speech recognition error: ' + event.error);
+                this.isRecording = false;
+                this.micButton.classList.remove('recording');
+                this.speechIndicator.classList.remove('active');
+            };
+        } else {
+            // Hide mic button if speech recognition is not supported
+            if (this.micButton) {
+                this.micButton.style.display = 'none';
+            }
+        }
+    }
+    
+    toggleSpeechRecognition() {
+        if (!this.recognition) {
+            this.showError('Speech recognition is not supported in your browser');
+            return;
+        }
+        
+        if (this.isRecording) {
+            this.recognition.stop();
+        } else {
+            this.recognition.start();
+        }
+    }
+    
+    handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            this.showError('Image file is too large. Please choose a file smaller than 5MB.');
+            return;
+        }
+        
+        // Check file type
+        if (!file.type.startsWith('image/')) {
+            this.showError('Please select a valid image file.');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.previewImg.src = e.target.result;
+            this.imagePreview.style.display = 'block';
+            this.currentImage = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    removeImage() {
+        this.imagePreview.style.display = 'none';
+        this.previewImg.src = '';
+        this.currentImage = null;
+        this.fileInput.value = '';
+    }
+    
+    async callChatAPI(message, consent) {
+        const payload = {
+            message: message,
+            consent: consent
+        };
+        
+        // Add image if present
+        if (this.currentImage) {
+            payload.image = this.currentImage;
+        }
+        
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
     }
 }
 

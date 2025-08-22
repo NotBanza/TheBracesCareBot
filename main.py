@@ -1,12 +1,15 @@
 import os
 import json
 import logging
+import base64
+import io
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from google import genai
 from google.genai import types
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
+from PIL import Image
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -77,19 +80,40 @@ def search_knowledge_base(message):
     
     return relevant_info
 
-def generate_gemini_response(user_message, knowledge_info, red_flags):
-    """Generate response using Gemini API"""
+def process_image(image_data):
+    """Process base64 image data for Gemini API"""
     try:
-        # Construct system prompt
+        # Remove data URL prefix if present
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
+        
+        # Decode base64 image
+        image_bytes = base64.b64decode(image_data)
+        
+        # Verify it's a valid image
+        img = Image.open(io.BytesIO(image_bytes))
+        img.verify()
+        
+        return image_bytes
+    except Exception as e:
+        logging.error(f"Image processing error: {e}")
+        return None
+
+def generate_gemini_response(user_message, knowledge_info, red_flags, image_data=None):
+    """Generate response using Gemini API with emoji support and image analysis"""
+    try:
+        # Construct system prompt with emoji support
         system_prompt = """You are BracesCareBot, a helpful and cautious assistant providing orthodontic care advice. 
         
         IMPORTANT GUIDELINES:
-        - Always be supportive and encouraging
+        - Always be supportive and encouraging 😊
         - Provide helpful, evidence-based information
-        - If you detect serious symptoms or red flags, immediately recommend seeing an orthodontist or medical professional
+        - If you detect serious symptoms or red flags, immediately recommend seeing an orthodontist or medical professional 🚨
         - Never provide specific medical diagnoses
-        - Always remind users that your advice doesn't replace professional medical care
+        - Always remind users that your advice doesn't replace professional medical care 👩‍⚕️
         - Be empathetic and understanding about orthodontic concerns
+        - Use appropriate emojis occasionally to make responses friendly and engaging (1-3 per response)
+        - For dental topics, use relevant emojis like 🦷, 😬, ✨, 🪥, 💙
         
         Use the provided knowledge base information to give accurate advice about braces, retainers, and orthodontic care."""
         
@@ -109,25 +133,46 @@ def generate_gemini_response(user_message, knowledge_info, red_flags):
         if red_flags:
             red_flag_warning = f"\n\nIMPORTANT: The user mentioned potentially serious symptoms: {', '.join(red_flags)}. Please prioritize recommending they contact their orthodontist or seek medical attention immediately."
         
-        # Construct full prompt
-        full_prompt = f"{system_prompt}\n\nUser question: {user_message}{kb_context}{red_flag_warning}"
+        # Handle image if provided
+        contents = []
+        image_context = ""
+        
+        if image_data:
+            processed_image = process_image(image_data)
+            if processed_image:
+                # Add image analysis context
+                image_context = "\n\nIMAGE ANALYSIS: The user has shared an image. Please analyze the image in the context of orthodontic care and provide relevant advice about what you observe. Look for braces, dental issues, or orthodontic appliances. Be specific about what you see and provide helpful guidance."
+                
+                contents = [
+                    types.Part.from_bytes(
+                        data=processed_image,
+                        mime_type="image/jpeg"
+                    ),
+                    f"{system_prompt}\n\nUser question: {user_message}{kb_context}{red_flag_warning}{image_context}"
+                ]
+            else:
+                # If image processing failed, continue without image
+                contents = f"{system_prompt}\n\nUser question: {user_message}{kb_context}{red_flag_warning}"
+        else:
+            # No image, standard text prompt
+            contents = f"{system_prompt}\n\nUser question: {user_message}{kb_context}{red_flag_warning}"
         
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=full_prompt,
+            contents=contents,
             config=types.GenerateContentConfig(
                 temperature=0.7,
                 max_output_tokens=1000
             )
         )
         
-        return response.text or "I apologize, but I'm having trouble generating a response right now. Please try again or contact your orthodontist if you have urgent concerns."
+        return response.text or "I apologize, but I'm having trouble generating a response right now. Please try again or contact your orthodontist if you have urgent concerns. 😔"
         
     except Exception as e:
         logging.error(f"Gemini API error: {e}")
         if red_flags:
-            return "I'm experiencing technical difficulties, but I noticed you mentioned some concerning symptoms. Please contact your orthodontist or seek medical attention immediately for proper care."
-        return "I'm sorry, I'm experiencing technical difficulties right now. Please try again later or contact your orthodontist if you have urgent questions."
+            return "I'm experiencing technical difficulties, but I noticed you mentioned some concerning symptoms. Please contact your orthodontist or seek medical attention immediately for proper care. 🚨"
+        return "I'm sorry, I'm experiencing technical difficulties right now. Please try again later or contact your orthodontist if you have urgent questions. 💙"
 
 def save_to_firestore(user_message, bot_response):
     """Save chat interaction to Firestore"""
@@ -160,7 +205,7 @@ def static_files(filename):
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Handle chat messages"""
+    """Handle chat messages with optional image support"""
     try:
         data = request.get_json()
         
@@ -169,6 +214,7 @@ def chat():
         
         user_message = data['message'].strip()
         consent = data.get('consent', False)
+        image_data = data.get('image', None)  # Base64 encoded image
         
         if not user_message:
             return jsonify({'error': 'Message cannot be empty'}), 400
@@ -179,8 +225,8 @@ def chat():
         # Search knowledge base
         knowledge_info = search_knowledge_base(user_message)
         
-        # Generate response
-        bot_response = generate_gemini_response(user_message, knowledge_info, red_flags)
+        # Generate response (with image support)
+        bot_response = generate_gemini_response(user_message, knowledge_info, red_flags, image_data)
         
         # Save to Firestore if consent given
         if consent and firestore_enabled:
@@ -189,12 +235,13 @@ def chat():
         return jsonify({
             'response': bot_response,
             'red_flags': red_flags,
-            'knowledge_used': len(knowledge_info) > 0
+            'knowledge_used': len(knowledge_info) > 0,
+            'image_analyzed': image_data is not None
         })
         
     except Exception as e:
         logging.error(f"Chat endpoint error: {e}")
-        return jsonify({'error': 'An error occurred processing your message. Please try again.'}), 500
+        return jsonify({'error': 'An error occurred processing your message. Please try again. 😔'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
