@@ -25,19 +25,11 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
 # Initialize Gemini client
 gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY", "default_key"))
 
-# Initialize Firestore (optional)
-try:
-    if not firebase_admin._apps:
-        # Initialize Firebase Admin SDK
-        cred = credentials.ApplicationDefault()
-        firebase_admin.initialize_app(cred)
-    
-    db = firestore.client()
-    firestore_enabled = True
-    logging.info("Firestore initialized successfully")
-except Exception as e:
-    logging.warning(f"Firestore initialization failed: {e}. Chat history will not be saved.")
-    firestore_enabled = False
+# Initialize Firestore (optional) - For production, disable backend Firestore
+# The frontend will handle Firestore directly via Firebase Web SDK
+firestore_enabled = False
+db = None
+logging.info("Backend Firestore disabled - using frontend Firebase Web SDK for chat history")
 
 # Load knowledge base
 def load_knowledge_base():
@@ -236,8 +228,38 @@ def save_to_firestore(user_message, bot_response, user_id="demoUser"):
 
 @app.route('/')
 def index():
-    """Serve the main chat interface"""
-    return send_from_directory('static', 'index.html')
+    """Serve the main chat interface with Firebase config"""
+    # Read the HTML file and inject Firebase config
+    with open('static/index.html', 'r') as f:
+        html_content = f.read()
+    
+    # Inject Firebase configuration from environment variables
+    firebase_config = {
+        'apiKey': os.environ.get('FIREBASE_API_KEY', ''),
+        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
+        'projectId': os.environ.get('GOOGLE_CLOUD_PROJECT', ''),
+        'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
+        'messagingSenderId': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+        'appId': os.environ.get('FIREBASE_APP_ID', '')
+    }
+    
+    # Replace the Firebase config placeholder in HTML
+    config_script = f"""
+        window.FIREBASE_API_KEY = "{firebase_config['apiKey']}";
+        window.FIREBASE_AUTH_DOMAIN = "{firebase_config['authDomain']}";
+        window.FIREBASE_PROJECT_ID = "{firebase_config['projectId']}";
+        window.FIREBASE_STORAGE_BUCKET = "{firebase_config['storageBucket']}";
+        window.FIREBASE_MESSAGING_SENDER_ID = "{firebase_config['messagingSenderId']}";
+        window.FIREBASE_APP_ID = "{firebase_config['appId']}";
+    """
+    
+    # Inject the script before the Firebase configuration script
+    html_content = html_content.replace(
+        '// Firebase configuration - will be set via environment variables',
+        config_script + '\n        // Firebase configuration - will be set via environment variables'
+    )
+    
+    return html_content
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -269,9 +291,7 @@ def chat():
         # Generate response (with image support and language awareness)
         bot_response = generate_gemini_response(user_message, knowledge_info, red_flags, image_data)
         
-        # Save to Firestore if consent given
-        if consent and firestore_enabled:
-            save_to_firestore(user_message, bot_response)
+        # Note: Chat history is now handled by frontend Firebase Web SDK
         
         return jsonify({
             'response': bot_response,
