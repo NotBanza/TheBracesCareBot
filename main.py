@@ -10,8 +10,7 @@ except ImportError:
     # Handle import error gracefully
     genai = None
 from google.genai import types
-import firebase_admin
-from firebase_admin import credentials, firestore
+# Firebase Admin SDK removed - using frontend Firebase Web SDK instead
 from datetime import datetime
 from PIL import Image
 
@@ -198,33 +197,7 @@ def generate_gemini_response(user_message, knowledge_info, red_flags, image_data
             return "I'm experiencing technical difficulties, but I noticed you mentioned some concerning symptoms. Please contact your orthodontist or seek medical attention immediately for proper care. 🚨"
         return "I'm sorry, I'm experiencing technical difficulties right now. Please try again later or contact your orthodontist if you have urgent questions. 💙"
 
-def save_to_firestore(user_message, bot_response, user_id="demoUser"):
-    """Save chat interaction to Firestore"""
-    if not firestore_enabled:
-        return False
-    
-    try:
-        doc_ref = db.collection('messages').document()
-        doc_ref.set({
-            'userId': user_id,
-            'sender': 'user',
-            'text': user_message,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        })
-        
-        doc_ref2 = db.collection('messages').document()
-        doc_ref2.set({
-            'userId': user_id,
-            'sender': 'bot',
-            'text': bot_response,
-            'timestamp': firestore.SERVER_TIMESTAMP
-        })
-        
-        logging.info("Chat saved to Firestore successfully")
-        return True
-    except Exception as e:
-        logging.error(f"Failed to save to Firestore: {e}")
-        return False
+# Firestore operations now handled by frontend Firebase Web SDK
 
 @app.route('/')
 def index():
@@ -304,29 +277,7 @@ def chat():
         logging.error(f"Chat endpoint error: {e}")
         return jsonify({'error': 'An error occurred processing your message. Please try again. 😔'}), 500
 
-@app.route('/chat-history/<user_id>', methods=['GET'])
-def get_chat_history(user_id="demoUser"):
-    """Fetch chat history from Firestore"""
-    if not firestore_enabled:
-        return jsonify({'messages': []})
-    
-    try:
-        messages_ref = db.collection('messages').where('userId', '==', user_id).order_by('timestamp')
-        messages = []
-        
-        for doc in messages_ref.stream():
-            data = doc.to_dict()
-            messages.append({
-                'sender': data['sender'],
-                'text': data['text'],
-                'timestamp': data['timestamp'].isoformat() if data['timestamp'] else None
-            })
-        
-        return jsonify({'messages': messages})
-        
-    except Exception as e:
-        logging.error(f"Failed to fetch chat history: {e}")
-        return jsonify({'messages': []})
+# Chat history endpoint removed - handled by frontend Firebase Web SDK
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
