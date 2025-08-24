@@ -28,12 +28,16 @@ class BracesCareBot {
         this.initializeSpeechRecognition();
     }
     
-    initializeApp() {
+    async initializeApp() {
         // Focus on input
         this.messageInput.focus();
         
-        // Load chat history from localStorage
-        this.loadChatHistory();
+        // Initialize Firebase variables
+        this.userId = 'demoUser'; // Default user ID for now
+        this.isFirebaseEnabled = !!window.db;
+        
+        // Load chat history from Firestore or localStorage
+        await this.loadChatHistory();
         
         // Load saved language preference
         const savedLang = localStorage.getItem('bracescarebot_language');

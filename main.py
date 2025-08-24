@@ -4,7 +4,11 @@ import logging
 import base64
 import io
 from flask import Flask, request, jsonify, render_template, send_from_directory
-from google import genai
+try:
+    from google import genai
+except ImportError:
+    # Handle import error gracefully
+    genai = None
 from google.genai import types
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -25,7 +29,6 @@ gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY", "default_k
 try:
     if not firebase_admin._apps:
         # Initialize Firebase Admin SDK
-        # In production, use service account key from environment
         cred = credentials.ApplicationDefault()
         firebase_admin.initialize_app(cred)
     
@@ -54,6 +57,29 @@ RED_FLAG_KEYWORDS = [
     'difficulty swallowing', 'allergic reaction', 'rash', 'nausea',
     'vomiting', 'dizziness', 'fainting'
 ]
+
+def detect_language(text):
+    """Simple language detection based on common patterns"""
+    text_lower = text.lower()
+    
+    # isiZulu patterns
+    if any(word in text_lower for word in ['ngiyabonga', 'sawubona', 'yebo', 'cha', 'kanjani', 'ngicela', 'amazinyo', 'ukudla']):
+        return 'isiZulu'
+    
+    # isiXhosa patterns  
+    if any(word in text_lower for word in ['enkosi', 'molo', 'ewe', 'hayi', 'kunjani', 'ndicela', 'amazinyo', 'ukutya']):
+        return 'isiXhosa'
+    
+    # Afrikaans patterns
+    if any(word in text_lower for word in ['dankie', 'hallo', 'ja', 'nee', 'hoe gaan dit', 'asseblief', 'tande', 'eet']):
+        return 'Afrikaans'
+    
+    # Sesotho patterns
+    if any(word in text_lower for word in ['kea leboha', 'dumela', 'ee', 'tjhe', 'ho joang', 'ke kopa', 'meno', 'ho ja']):
+        return 'Sesotho'
+    
+    # Default to English
+    return 'English'
 
 def check_red_flags(message):
     """Check if message contains red flag keywords"""
@@ -100,12 +126,18 @@ def process_image(image_data):
         return None
 
 def generate_gemini_response(user_message, knowledge_info, red_flags, image_data=None):
-    """Generate response using Gemini API with emoji support and image analysis"""
+    """Generate response using Gemini API with emoji support, image analysis, and language awareness"""
     try:
-        # Construct system prompt with emoji support
-        system_prompt = """You are BracesCareBot, a helpful and cautious assistant providing orthodontic care advice. 
+        # Detect user language for response
+        user_language = detect_language(user_message)
+        
+        # Construct system prompt with emoji support and language awareness
+        system_prompt = f"""You are BracesCareBot, a helpful and cautious assistant providing orthodontic care advice.
+        
+        CRITICAL: The user is communicating in {user_language}. You MUST respond in the same language ({user_language}) that the user used.
         
         IMPORTANT GUIDELINES:
+        - Always respond in {user_language} - the same language the user used
         - Always be supportive and encouraging 😊
         - Provide helpful, evidence-based information
         - If you detect serious symptoms or red flags, immediately recommend seeing an orthodontist or medical professional 🚨
@@ -141,7 +173,7 @@ def generate_gemini_response(user_message, knowledge_info, red_flags, image_data
             processed_image = process_image(image_data)
             if processed_image:
                 # Add image analysis context
-                image_context = "\n\nIMAGE ANALYSIS: The user has shared an image. Please analyze the image in the context of orthodontic care and provide relevant advice about what you observe. Look for braces, dental issues, or orthodontic appliances. Be specific about what you see and provide helpful guidance."
+                image_context = f"\n\nIMAGE ANALYSIS: The user has shared an image. Please analyze the image in the context of orthodontic care and provide relevant advice about what you observe in {user_language}. Look for braces, dental issues, or orthodontic appliances. Be specific about what you see and provide helpful guidance."
                 
                 contents = [
                     types.Part.from_bytes(
@@ -174,19 +206,28 @@ def generate_gemini_response(user_message, knowledge_info, red_flags, image_data
             return "I'm experiencing technical difficulties, but I noticed you mentioned some concerning symptoms. Please contact your orthodontist or seek medical attention immediately for proper care. 🚨"
         return "I'm sorry, I'm experiencing technical difficulties right now. Please try again later or contact your orthodontist if you have urgent questions. 💙"
 
-def save_to_firestore(user_message, bot_response):
+def save_to_firestore(user_message, bot_response, user_id="demoUser"):
     """Save chat interaction to Firestore"""
     if not firestore_enabled:
         return False
     
     try:
-        doc_ref = db.collection('chat_history').document()
+        doc_ref = db.collection('messages').document()
         doc_ref.set({
-            'user_message': user_message,
-            'bot_response': bot_response,
-            'timestamp': datetime.utcnow(),
-            'session_id': request.remote_addr  # Simple session identification
+            'userId': user_id,
+            'sender': 'user',
+            'text': user_message,
+            'timestamp': firestore.SERVER_TIMESTAMP
         })
+        
+        doc_ref2 = db.collection('messages').document()
+        doc_ref2.set({
+            'userId': user_id,
+            'sender': 'bot',
+            'text': bot_response,
+            'timestamp': firestore.SERVER_TIMESTAMP
+        })
+        
         logging.info("Chat saved to Firestore successfully")
         return True
     except Exception as e:
@@ -225,7 +266,7 @@ def chat():
         # Search knowledge base
         knowledge_info = search_knowledge_base(user_message)
         
-        # Generate response (with image support)
+        # Generate response (with image support and language awareness)
         bot_response = generate_gemini_response(user_message, knowledge_info, red_flags, image_data)
         
         # Save to Firestore if consent given
@@ -242,6 +283,30 @@ def chat():
     except Exception as e:
         logging.error(f"Chat endpoint error: {e}")
         return jsonify({'error': 'An error occurred processing your message. Please try again. 😔'}), 500
+
+@app.route('/chat-history/<user_id>', methods=['GET'])
+def get_chat_history(user_id="demoUser"):
+    """Fetch chat history from Firestore"""
+    if not firestore_enabled:
+        return jsonify({'messages': []})
+    
+    try:
+        messages_ref = db.collection('messages').where('userId', '==', user_id).order_by('timestamp')
+        messages = []
+        
+        for doc in messages_ref.stream():
+            data = doc.to_dict()
+            messages.append({
+                'sender': data['sender'],
+                'text': data['text'],
+                'timestamp': data['timestamp'].isoformat() if data['timestamp'] else None
+            })
+        
+        return jsonify({'messages': messages})
+        
+    except Exception as e:
+        logging.error(f"Failed to fetch chat history: {e}")
+        return jsonify({'messages': []})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

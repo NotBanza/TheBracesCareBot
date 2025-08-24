@@ -145,7 +145,6 @@ body {
   font-size: 2.5rem;
   position: relative;
   overflow: hidden;
-  animation: pulse 2s ease-in-out infinite;
 }
 
 .welcome-icon::before {
@@ -156,18 +155,8 @@ body {
   width: 200%;
   height: 200%;
   background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-  animation: shimmer 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-}
 
 .welcome-title {
   color: var(--text-dark);
@@ -232,7 +221,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  animation: fadeInUp 0.3s ease-out;
+
 }
 
 .message.user {
@@ -265,7 +254,6 @@ body {
   background: var(--white);
   color: var(--primary-blue);
   border: 2px solid var(--light-blue);
-  animation: dentistAnimation 4s ease-in-out infinite;
 }
 
 @keyframes dentistAnimation {
@@ -276,7 +264,6 @@ body {
 }
 
 .message.bot .message-avatar:hover {
-  animation: sparkle 0.6s ease-in-out;
 }
 
 @keyframes sparkle {
@@ -329,7 +316,7 @@ body {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0 1.5rem;
-  animation: fadeInUp 0.3s ease-out;
+
 }
 
 .typing-bubble {
@@ -352,7 +339,6 @@ body {
   height: 8px;
   background: var(--text-muted);
   border-radius: 50%;
-  animation: typingDots 1.4s infinite ease-in-out;
 }
 
 .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
@@ -626,13 +612,8 @@ body {
 /* Dental themed animations */
 .braces-icon {
   display: inline-block;
-  animation: bracesTwinkle 2s ease-in-out infinite;
 }
 
-@keyframes bracesTwinkle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; transform: scale(1.1); }
-}
 
 .dental-sparkle {
   position: relative;
@@ -643,14 +624,9 @@ body {
   position: absolute;
   top: -10px;
   right: -10px;
-  animation: sparkleFloat 3s ease-in-out infinite;
   font-size: 0.8rem;
 }
 
-@keyframes sparkleFloat {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-5px) rotate(180deg); }
-}
 
 /* Enhanced send button with pulse effect */
 .send-button::after {
@@ -661,13 +637,8 @@ body {
   border-radius: 50%;
   background: var(--primary-blue);
   z-index: -1;
-  animation: buttonPulse 2s ease-in-out infinite;
 }
 
-@keyframes buttonPulse {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1.4); opacity: 0; }
-}
 
 /* Input controls container */
 .input-controls {
@@ -700,7 +671,6 @@ body {
 
 .mic-button.recording {
   background: var(--danger-red);
-  animation: recordingPulse 1s ease-in-out infinite;
 }
 
 @keyframes recordingPulse {
@@ -716,7 +686,6 @@ body {
   border-radius: 50%;
   background: var(--danger-red);
   z-index: -1;
-  animation: micPulse 1s ease-in-out infinite;
 }
 
 @keyframes micPulse {
@@ -789,7 +758,7 @@ body {
   border-radius: 20px;
   font-size: 0.9rem;
   margin: 0.5rem 0;
-  animation: fadeInUp 0.3s ease-out;
+
 }
 
 .speech-indicator.active {
@@ -801,7 +770,6 @@ body {
   height: 20px;
   background: white;
   border-radius: 50%;
-  animation: speechWave 1s ease-in-out infinite;
 }
 
 @keyframes speechWave {
